@@ -14,6 +14,12 @@ import (
 var debugMode bool
 
 func main() {
+	// Check for --help
+	if len(os.Args) > 1 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
+		printHelp()
+		os.Exit(0)
+	}
+
 	// Parse command-line arguments
 	migrationDir := "."
 	for i, arg := range os.Args {
@@ -45,7 +51,6 @@ func main() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
-
 		if len(fields) >= 2 {
 			status := fields[0]
 			oldFilePath := fields[1]
@@ -54,8 +59,6 @@ func main() {
 			if len(fields) == 3 {
 				newFilePath = fields[2]
 			}
-
-
 
 			// Skip files not in the specified directory
 			if !strings.HasPrefix(newFilePath, migrationDir) {
@@ -142,4 +145,11 @@ func getMigrationFiles(migrationDir string) ([]string, error) {
 	})
 
 	return files, err
+}
+
+func printHelp() {
+	fmt.Println("Usage: dum-flyway-validate [OPTIONS]")
+	fmt.Println("  --migration-dir   Specify the migration directory (default: current directory)")
+	fmt.Println("  --debug            Enable debug mode")
+	fmt.Println("  --help, -h         Show this help message")
 }

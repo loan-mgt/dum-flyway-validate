@@ -58,6 +58,26 @@ jobs:
           Release notes and description go here.
         draft: false
         prerelease: false
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          Release notes and description go here.
+        draft: false
+        prerelease: false
+
+    - name: Debug Release
+      run: |
+        echo "Release ID: ${{ steps.create_release.outputs.id }}"
+        echo "Release HTML URL: ${{ steps.create_release.outputs.html_url }}"
+        echo "Release Upload URL: ${{ steps.create_release.outputs.upload_url }}"
+
 
     - name: Upload Release Asset
       id: upload-release-asset
