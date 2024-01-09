@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var debugMode bool
+
 func main() {
 	// Parse command-line arguments
 	migrationDir := "."
@@ -18,7 +20,14 @@ func main() {
 		if arg == "--migration-dir" && i+1 < len(os.Args) {
 			migrationDir = os.Args[i+1]
 			break
+		} else if arg == "--debug" {
+			debugMode = true
 		}
+	}
+
+	if debugMode {
+		fmt.Println("Debug mode enabled")
+		fmt.Println("Migration directory:", migrationDir)
 	}
 
 	// Run git diff command
@@ -36,30 +45,57 @@ func main() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
-		if len(fields) == 3 {
+
+		if len(fields) >= 2 {
 			status := fields[0]
 			oldFilePath := fields[1]
-			newFilePath := fields[2]
+			newFilePath := oldFilePath // Assume no rename
+
+			if len(fields) == 3 {
+				newFilePath = fields[2]
+			}
+
+
+
+			// Skip files not in the specified directory
+			if !strings.HasPrefix(newFilePath, migrationDir) {
+				if debugMode {
+					fmt.Printf("Skipping file: %s (status: %s)\n", newFilePath, status)
+				}
+				continue
+			}
+
+			// Remove migration-dir from the file path
+			relativeFilePath, err := filepath.Rel(migrationDir, newFilePath)
+			if err != nil {
+				fmt.Println("Error getting relative path:", err)
+				os.Exit(1)
+			}
+
+			if debugMode {
+				fmt.Printf("Processing file: %s (status: %s)\n", newFilePath, status)
+				fmt.Printf("Conditions: isMigrationFile: %t, isAlphabeticallyLast: %t\n", isMigrationFile(newFilePath), isAlphabeticallyLast(newFilePath, migrationDir))
+			}
 
 			switch status {
 			case "M":
-				if isMigrationFile(newFilePath) && !isAlphabeticallyLast(newFilePath, migrationDir) {
-					fmt.Println("Error: Modified migration file not alphabetically last:", newFilePath)
+				if isMigrationFile(relativeFilePath) {
+					fmt.Println("Error: Cannot modify migration file after it was applied:", relativeFilePath)
 					os.Exit(1)
 				}
 			case "A":
-				if isMigrationFile(newFilePath) && !isAlphabeticallyLast(newFilePath, migrationDir) {
-					fmt.Println("Error: Added migration file not alphabetically last:", newFilePath)
+				if isMigrationFile(relativeFilePath) && !isAlphabeticallyLast(relativeFilePath, migrationDir) {
+					fmt.Println("Error: Added migration file not alphabetically last:", relativeFilePath)
 					os.Exit(1)
 				}
 			case "D":
-				if isMigrationFile(oldFilePath) {
-					fmt.Println("Error: Removed migration file:", oldFilePath)
+				if isMigrationFile(relativeFilePath) {
+					fmt.Println("Error: Cannot remove migration file after it was applied:", relativeFilePath)
 					os.Exit(1)
 				}
 			case "R":
-				if isMigrationFile(newFilePath) && !isAlphabeticallyLast(newFilePath, migrationDir) {
-					fmt.Println("Error: Renamed migration file not alphabetically last:", newFilePath)
+				if isMigrationFile(relativeFilePath) {
+					fmt.Println("Error: Cannot rename migration file after it was applied:", relativeFilePath)
 					os.Exit(1)
 				}
 			}
@@ -70,7 +106,7 @@ func main() {
 }
 
 func isMigrationFile(filePath string) bool {
-	re := regexp.MustCompile(`^V\d+__$`)
+	re := regexp.MustCompile(`^V\d+__`)
 	return re.MatchString(filepath.Base(filePath))
 }
 
