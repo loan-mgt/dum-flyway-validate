@@ -9,25 +9,7 @@ Dum Flyway Validate is a command-line tool to locally validate Flyway migrations
 
 ## Usage
 
-### Basic Usage
-
-```bash
-./dum-flyway-validate
-```
-
-### Specify Migration Directory
-
-```bash
-./dum-flyway-validate --migration-dir path/to/migrations
-```
-
-### Enable Debug Mode
-
-```bash
-./dum-flyway-validate --migration-dir path/to/migrations --debug
-```
-
-### Specify Branch for Comparison
+### Standard Usage
 
 ```bash
 ./dum-flyway-validate --migration-dir path/to/migrations --branch your-branch
