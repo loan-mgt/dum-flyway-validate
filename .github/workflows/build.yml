@@ -56,8 +56,8 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         body: |
-          Release notes and description go here.
-        draft: false
+          CLI tool to validate flyway migration for CI/CD
+        draft: true
         prerelease: false
 
     - name: Debug Release

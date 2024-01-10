@@ -97,20 +97,20 @@ func main() {
 				fmt.Printf("Conditions: isMigrationFile: %t, isAlphabeticallyLast: %t\n", isMigrationFile(relativeFilePath), isAlphabeticallyLast(relativeFilePath, migrationDir))
 			}
 
-			switch status {
-			case "M":
+			// Regex for <X><score>
+			if isMatch(status, `^M`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot modify migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
 				}
-			case "A":
+			} else if isMatch(status, `^A`) {
 				if isMigrationFile(relativeFilePath) && !isAlphabeticallyLast(relativeFilePath, migrationDir) {
 					validationErrors = append(validationErrors, fmt.Sprintf("Error: Added migration file not alphabetically last: %s\n\t%s", relativeFilePath, newFilePath))
 				}
-			case "D":
+			} else if isMatch(status, `^D`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot remove migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
 				}
-			case "R":
+			} else if isMatch(status, `^R`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot rename migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
 				}
@@ -165,6 +165,11 @@ func getMigrationFiles(migrationDir string) ([]string, error) {
 	})
 
 	return files, err
+}
+
+func isMatch(input, pattern string) bool {
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(input)
 }
 
 func printHelp() {
