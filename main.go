@@ -28,7 +28,6 @@ func init() {
 
 func main() {
 
-
 	if debugMode {
 		fmt.Println("Debug mode enabled")
 		fmt.Println("Migration directory: ", migrationDir)
@@ -55,7 +54,7 @@ func main() {
 		cmdArgs = append(cmdArgs, compareBranch)
 	}
 
-	cmdArgs = append(cmdArgs, "--", migrationDir)
+	cmdArgs = append(cmdArgs, migrationDir)
 
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	output, err := cmd.Output()
@@ -168,4 +167,3 @@ func isMatch(input, pattern string) bool {
 	re := regexp.MustCompile(pattern)
 	return re.MatchString(input)
 }
-
