@@ -30,7 +30,7 @@ Dum Flyway Validate is a command-line tool to locally validate Flyway migrations
 
 - **Removed Migration File:** Error if removed after being applied.
 
-- **Renamed Migration File:** Error if not alphabetically last in the specified directory.
+- **Renamed Migration File:** Error if renamed after being applied.
 
 ## Contributing
 
@@ -38,8 +38,4 @@ Contributions are welcome! Feel free to submit issues or pull requests.
 
 ## License
 
-[MIT License](LICENSE)
-
----
-
-Adjust as needed to fit your project specifics.
+[GNU3 License](LICENSE)
