@@ -1,6 +1,11 @@
+<div align="center">
+<img width=200 alt="logo Dum Flyway Validate" src="doc/assets/logo.png">
+
 # Dum Flyway Validate
 
 Dum Flyway Validate is a command-line tool to locally validate Flyway migrations. It ensures migration consistency using Git and specific conditions.
+
+</div>
 
 ## Usage
 
