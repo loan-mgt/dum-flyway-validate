@@ -59,14 +59,16 @@ stages:
   - validate
 
 variables:
-  DUM_FLYWAY_VALIDATE_VERSION: "v0.2.3"
+  DUM_FLYWAY_VALIDATE_VERSION: "v0.2.4"
   MIGRATION_DIR: "path/to/migrations"
-  BRANCH_TO_COMPARE: "your-branch"
+  BRANCH_TO_COMPARE: "origin/your-branch"
 
 validate:
   stage: validate
+  image: alpine:latest
   script:
-    - wget https://github.com/Qypol342/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
+    - apk --update add curl git
+    - curl -LO https://github.com/Qypol342/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
     - chmod +x dum-flyway-validate
     - ./dum-flyway-validate --migration-dir $MIGRATION_DIR --branch $BRANCH_TO_COMPARE
 ```
