@@ -27,10 +27,7 @@ func init() {
 }
 
 func main() {
-	if flag.NArg() > 0 && (flag.Arg(0) == "--help" || flag.Arg(0) == "-h") {
-		printHelp()
-		os.Exit(0)
-	}
+
 
 	if debugMode {
 		fmt.Println("Debug mode enabled")
@@ -172,9 +169,3 @@ func isMatch(input, pattern string) bool {
 	return re.MatchString(input)
 }
 
-func printHelp() {
-	fmt.Println("Usage: dum-flyway-validate [OPTIONS]")
-	fmt.Println("  --migration-dir   Specify the migration directory (default: current directory)")
-	fmt.Println("  --debug            Enable debug mode")
-	fmt.Println("  --help, -h         Show this help message")
-}

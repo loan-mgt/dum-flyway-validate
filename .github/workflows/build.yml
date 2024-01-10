@@ -18,10 +18,19 @@ jobs:
       with:
         go-version: 1.17
 
-    - name: Build
+    - name: Build Linux binary
+      run: GOOS=linux GOARCH=amd64 go build -o dum-flyway-validate main.go
+
+    - name: Archive Linux artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries
+        path: dum-flyway-validate
+
+    - name: Build Windows binary
       run: GOOS=windows GOARCH=amd64 go build -o dum-flyway-validate.exe main.go
 
-    - name: Archive artifacts
+    - name: Archive Windows artifacts
       uses: actions/upload-artifact@v2
       with:
         name: binaries
@@ -56,7 +65,7 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         body: |
-          CLI tool to validate flyway migration for CI/CD
+          CLI tool to validate Flyway migration for CI/CD
         draft: true
         prerelease: false
 
@@ -66,8 +75,19 @@ jobs:
         echo "Release HTML URL: ${{ steps.create_release.outputs.html_url }}"
         echo "Release Upload URL: ${{ steps.create_release.outputs.upload_url }}"
 
-    - name: Upload Release Asset
-      id: upload-release-asset
+    - name: Upload Linux Release Asset
+      id: upload-linux-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dum-flyway-validate
+        asset_name: dum-flyway-validate
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows Release Asset
+      id: upload-windows-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
