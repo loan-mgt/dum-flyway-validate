@@ -1,7 +1,3 @@
-Certainly! Here's a shorter version of the README:
-
----
-
 # Dum Flyway Validate
 
 Dum Flyway Validate is a command-line tool to locally validate Flyway migrations. It ensures migration consistency using Git and specific conditions.

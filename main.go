@@ -36,6 +36,12 @@ func main() {
 		fmt.Println("Migration directory:", migrationDir)
 	}
 
+	// Change the current working directory
+	if err := os.Chdir(migrationDir); err != nil {
+		fmt.Println("Error changing directory:", err)
+		os.Exit(1)
+	}
+
 	// Run git diff command
 	cmd := exec.Command("git", "diff", "--name-status")
 	cmd.Dir = migrationDir
