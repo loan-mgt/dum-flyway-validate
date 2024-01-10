@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  release:
+    types:
+      - created
 
 jobs:
   build:
@@ -19,7 +22,7 @@ jobs:
         go-version: 1.17
 
     - name: Build
-      run: GOOS=windows GOARCH=amd64 go build -o dum-flyway-validate.exe main.go
+      run: GOOS=windows GOARCH=amd64 go build -o dum-flyway-validate.exe
 
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
@@ -65,7 +68,6 @@ jobs:
         echo "Release ID: ${{ steps.create_release.outputs.id }}"
         echo "Release HTML URL: ${{ steps.create_release.outputs.html_url }}"
         echo "Release Upload URL: ${{ steps.create_release.outputs.upload_url }}"
-
 
     - name: Upload Release Asset
       id: upload-release-asset
