@@ -13,30 +13,44 @@ import (
 )
 
 var (
-	debugMode     bool
-	migrationDir  string
-	compareBranch string
+	debugMode      bool
+	migrationDir   string
+	compareBranch  string
+	integration    bool
+)
+
+const (
+	gitLabURLEnv          = "GITLAB_URL"
+	gitLabTokenEnv        = "GITLAB_TOKEN"
+	ciProjectIDEnv        = "CI_PROJECT_ID"
+	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"
 )
 
 func init() {
 	flag.StringVar(&migrationDir, "migration-dir", ".", "Specify the migration directory (default: current directory)")
 	flag.StringVar(&compareBranch, "branch", "", "Specify the branch to compare against (default: empty, i.e., working directory)")
 	flag.BoolVar(&debugMode, "debug", false, "Enable debug mode")
+	flag.BoolVar(&integration, "integration", false, "Enable integration with GitLab merge request interface")
 
 	flag.Parse()
 }
 
 func main() {
-
 	if debugMode {
 		fmt.Println("Debug mode enabled")
 		fmt.Println("Migration directory: ", migrationDir)
 		fmt.Println("Compare branch: ", compareBranch)
-		dir, err := os.Getwd()
-		if err != nil {
-			fmt.Println("Err", err)
-		}
-		fmt.Println(dir)
+		fmt.Println("Integration enabled: ", integration)
+	}
+
+	// Read GitLab-related parameters from environment variables
+	gitLabURL := os.Getenv(gitLabURLEnv)
+	gitLabToken := os.Getenv(gitLabTokenEnv)
+	ciProjectID := os.Getenv(ciProjectIDEnv)
+	ciMergeRequestIID := os.Getenv(ciMergeRequestIIDEnv)
+
+	if integration && ( gitLabURL == "" || gitLabToken == "" || ciProjectID == "" || ciMergeRequestIID == "" ){
+		fmt.Println("Warning: GitLab-related environment variables not set.")
 	}
 
 	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
@@ -119,10 +133,33 @@ func main() {
 		for _, err := range validationErrors {
 			fmt.Println(err)
 		}
+
+		if integration {
+			if err := integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID, validationResult); err != nil {
+				fmt.Println("Warning: Error integrating with GitLab:", err)
+			}
+		}
 		os.Exit(1)
 	}
 
 	fmt.Println("Validation successful")
+}
+
+func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID, validationResult string) error {
+	// Prepare the curl command to post a note to the merge request with the validation result
+	curlCommand := fmt.Sprintf(`curl --location --request POST "%s/api/v4/projects/%s/merge_requests/%s/notes" --header "PRIVATE-TOKEN: %s" --header "Content-Type: application/json" --data-raw "{ \"body\": \"%s" }"`, gitLabURL, ciProjectID, ciMergeRequestIID, gitLabToken, validationResult)
+
+	cmd := exec.Command("bash", "-c", curlCommand)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Error running curl command:", err)
+		return err
+	}
+
+	// Log the output of the curl command (you can customize this as needed)
+	fmt.Println("GitLab integration output:", string(output))
+
+	return nil
 }
 
 func isMigrationFile(filePath string) bool {
