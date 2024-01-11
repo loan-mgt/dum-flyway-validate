@@ -23,7 +23,7 @@ const (
 	gitLabURLEnv          = "GITLAB_URL"
 	gitLabTokenEnv        = "GITLAB_TOKEN"
 	ciProjectIDEnv        = "CI_PROJECT_ID"
-	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"f
+	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"
 )
 
 func init() {
