@@ -23,7 +23,7 @@ const (
 	gitLabURLEnv          = "GITLAB_URL"
 	gitLabTokenEnv        = "GITLAB_TOKEN"
 	ciProjectIDEnv        = "CI_PROJECT_ID"
-	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"
+	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"f
 )
 
 func init() {
@@ -157,12 +157,15 @@ func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID 
 	body := fmt.Sprintf("Validation Errors:\n%s", strings.Join(validationErrors, "\n"))
 	curlURL := fmt.Sprintf(`"%s/api/v4/projects/%s/merge_requests/%s/notes" `, gitLabURL, ciProjectID, ciMergeRequestIID)
 
-	cmd := exec.Command("curl", " --location", "--request", "POST", curlURL, "--header", "PRIVATE-TOKEN: "+gitLabToken,
+	cmd := exec.Command("curl", "--location", "--request", "POST", curlURL, "--header", "PRIVATE-TOKEN: "+gitLabToken,
 		"--header", "Content-Type: application/json", "--data-raw", fmt.Sprintf(`{ "body": "%s" }`, body))
 	output, err := cmd.CombinedOutput()
+
 	if err != nil {
+		// Print the error details
 		fmt.Println("Error running curl command:", err)
-		return err
+		fmt.Println("Command output:", string(output))
+		return fmt.Errorf("Error running curl command: %v", err)
 	}
 
 	// Log the output of the curl command (you can customize this as needed)
@@ -170,6 +173,7 @@ func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID 
 
 	return nil
 }
+
 
 func isMigrationFile(filePath string) bool {
 	re := regexp.MustCompile(`^V\d+__`)
