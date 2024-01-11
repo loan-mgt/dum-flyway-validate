@@ -161,6 +161,11 @@ func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID 
 		"--header", "Content-Type: application/json", "--data-raw", fmt.Sprintf(`{ "body": "%s" }`, body))
 	output, err := cmd.CombinedOutput()
 
+	if debugMode {
+		fmt.Println("GitLab integration command:", cmd.String())
+		fmt.Println("GitLab integration output:", string(output))
+	}
+
 	if err != nil {
 		// Print the error details
 		fmt.Println("Error running curl command:", err)
