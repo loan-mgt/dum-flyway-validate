@@ -53,6 +53,13 @@ func main() {
 		fmt.Println("Warning: GitLab-related environment variables not set.")
 	}
 
+	if debugMode {
+		fmt.Println("GitLab URL: ", gitLabURL)
+		fmt.Println("GitLab Token: ", gitLabToken.Substr(0, 4))
+		fmt.Println("CI Project ID: ", ciProjectID)
+		fmt.Println("CI Merge Request IID: ", ciMergeRequestIID)
+	}
+
 	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
 		fmt.Println("Error: Migration directory does not exist:", migrationDir)
 		os.Exit(1)
