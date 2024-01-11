@@ -55,7 +55,7 @@ func main() {
 
 	if debugMode {
 		fmt.Println("GitLab URL: ", gitLabURL)
-		fmt.Println("GitLab Token: ", gitLabToken.Substr(0, 4))
+		fmt.Println("GitLab Token: ", gitLabToken == "")
 		fmt.Println("CI Project ID: ", ciProjectID)
 		fmt.Println("CI Merge Request IID: ", ciMergeRequestIID)
 	}
