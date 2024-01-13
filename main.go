@@ -158,7 +158,7 @@ func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID 
 	url := fmt.Sprintf(`"%s/api/v4/projects/%s/merge_requests/%s/notes"`, gitLabURL, ciProjectID, ciMergeRequestIID)
 
 	cmd := exec.Command("curl", "--location", "--request", "POST", url, "--header", fmt.Sprintf(`"PRIVATE-TOKEN: %s"`, gitLabToken) ,
-		"--header", "Content-Type: application/json", "--data-raw", fmt.Sprintf(`"{ \"body\": \"%s\" }"`, body))
+		"--header", `"Content-Type: application/json"`, "--data-raw", fmt.Sprintf(`"{ \"body\": \"%s\" }"`, body))
 	output, err := cmd.CombinedOutput()
 
 	if debugMode {
