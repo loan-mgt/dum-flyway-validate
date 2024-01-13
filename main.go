@@ -10,7 +10,11 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"bytes"
+	"encoding/json"
+	"net/http"
 )
+
 
 var (
 	debugMode      bool
@@ -25,6 +29,13 @@ const (
 	ciProjectIDEnv        = "CI_PROJECT_ID"
 	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"
 )
+
+type ValidationError struct {
+	Message   string
+	MessageMD   string
+	OldPath   string
+	NewPath   string
+}
 
 func init() {
 	flag.StringVar(&migrationDir, "migration-dir", ".", "Specify the migration directory (default: current directory)")
@@ -55,7 +66,7 @@ func main() {
 
 	if debugMode {
 		fmt.Println("GitLab URL: ", gitLabURL)
-		fmt.Println("GitLab Token: ", !(gitLabToken == "") )
+		fmt.Println("GitLab Token: ", len(gitLabToken))
 		fmt.Println("CI Project ID: ", ciProjectID)
 		fmt.Println("CI Merge Request IID: ", ciMergeRequestIID)
 	}
@@ -87,7 +98,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var validationErrors []string
+	var validationErrors []ValidationError
 
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
@@ -105,7 +116,9 @@ func main() {
 
 			relativeFilePath, err := filepath.Rel(migrationDir, newFilePath)
 			if err != nil {
-				validationErrors = append(validationErrors, fmt.Sprintf("Error getting relative path: %v", err))
+				validationErrors = append(validationErrors, ValidationError{
+					Message: fmt.Sprintf("Error getting relative path: %v", err),
+				})
 				continue
 			}
 
@@ -114,31 +127,51 @@ func main() {
 				fmt.Printf("Conditions: isMigrationFile: %t, isAlphabeticallyLast: %t\n", isMigrationFile(relativeFilePath), isAlphabeticallyLast(relativeFilePath, migrationDir))
 			}
 
-			// Regex for <X><score>
 			if isMatch(status, `^M`) {
 				if isMigrationFile(relativeFilePath) {
-					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot modify migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
+					validationErrors = append(validationErrors, ValidationError{
+						Message: fmt.Sprintf("Error: Cannot modify migration file after it was applied"),
+						MessageMD: fmt.Sprintf(":warning: Error: Cannot **modify** migration file after it was applied"),
+						OldPath: oldFilePath,
+						NewPath: newFilePath,
+					})
 				}
 			} else if isMatch(status, `^A`) {
 				if isMigrationFile(relativeFilePath) && !isAlphabeticallyLast(relativeFilePath, migrationDir) {
-					validationErrors = append(validationErrors, fmt.Sprintf("Error: Added migration file not alphabetically last: %s\n\t%s", relativeFilePath, newFilePath))
+					validationErrors = append(validationErrors, ValidationError{
+						Message: fmt.Sprintf("Error: Added migration file not alphabetically last"),
+						MessageMD: fmt.Sprintf(":warning: Error: Added migration file **not** alphabetically **last**"),
+						OldPath: oldFilePath,
+						NewPath: newFilePath,
+					})
 				}
 			} else if isMatch(status, `^D`) {
 				if isMigrationFile(relativeFilePath) {
-					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot remove migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
+					validationErrors = append(validationErrors, ValidationError{
+						Message: fmt.Sprintf("Error: Cannot remove migration file after it was applied"),
+						MessageMD: fmt.Sprintf(":warning: Error: Cannot **remove** migration file after it was applied"),
+						OldPath: oldFilePath,
+						NewPath: newFilePath,
+					})
 				}
 			} else if isMatch(status, `^R`) {
 				if isMigrationFile(relativeFilePath) {
-					validationErrors = append(validationErrors, fmt.Sprintf("Error: Cannot rename migration file after it was applied: %s\n\t%s", relativeFilePath, newFilePath))
+					validationErrors = append(validationErrors, ValidationError{
+						Message: fmt.Sprintf("Error: Cannot rename migration file after it was applied"),
+						MessageMD: fmt.Sprintf(":warning: Error: Cannot **rename** migration file after it was applied"),
+						OldPath: oldFilePath,
+						NewPath: newFilePath,
+					})
 				}
 			}
 		}
 	}
 
+
 	if len(validationErrors) > 0 {
 		fmt.Println("Validation errors:")
 		for _, err := range validationErrors {
-			fmt.Println(err)
+			fmt.Printf("%s\n	%s\n\n", err.Message, err.NewPath)
 		}
 
 		if integration {
@@ -152,33 +185,97 @@ func main() {
 	fmt.Println("Validation successful")
 }
 
-func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID string, validationErrors []string) error {
-	// Prepare the curl command to post a note to the merge request with the validation result
-	body := fmt.Sprintf("Validation Errors:\n%s", strings.Join(validationErrors, "\n"))
-	url := fmt.Sprintf(`"%s/api/v4/projects/%s/merge_requests/%s/notes"`, gitLabURL, ciProjectID, ciMergeRequestIID)
+func RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/v4/projects/%s/merge_requests/%s", gitLabURL, ciProjectID, ciMergeRequestIID)
 
-	cmd := exec.Command("curl", "--location", "--request", "POST", url, "--header", fmt.Sprintf(`"PRIVATE-TOKEN: %s"`, gitLabToken) ,
-		"--header", `"Content-Type: application/json"`, "--data-raw", fmt.Sprintf(`"{ \"body\": \"%s\" }"`, body))
-	output, err := cmd.CombinedOutput()
-
-	if debugMode {
-		fmt.Println("GitLab integration command:", cmd.String())
-		fmt.Println("GitLab integration output:", string(output))
-	}
-
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		// Print the error details
-		fmt.Println("Error running curl command:", err)
-		fmt.Println("Command output:", string(output))
-		return fmt.Errorf("Error running curl command: %v", err)
+		return nil, fmt.Errorf("Error creating HTTP request: %v", err)
 	}
 
-	// Log the output of the curl command (you can customize this as needed)
-	fmt.Println("GitLab integration output:", string(output))
+	req.Header.Set("PRIVATE-TOKEN", gitLabToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Error retrieving Merge Request info. Status code: %d", resp.StatusCode)
+	}
+
+	var mrInfo map[string]interface{}
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(&mrInfo); err != nil {
+		return nil, fmt.Errorf("Error decoding Merge Request info: %v", err)
+	}
+
+	return mrInfo, nil
+}
+
+
+
+func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID string, validationErrors []ValidationError) error {
+	mrInfo, err := RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID)
+	if err != nil {
+		return fmt.Errorf("Error retrieving Merge Request info: %v", err)
+	}
+
+	for _, validationError := range validationErrors {
+		// Prepare the URL to post a discussion to the merge request with the validation result
+		url := fmt.Sprintf("%s/v4/projects/%s/merge_requests/%s/discussions", gitLabURL, ciProjectID, ciMergeRequestIID)
+
+		// Create a map for the JSON payload
+		payload := map[string]interface{}{
+			"body": validationError.MessageMD,
+			"position": map[string]interface{}{
+				"position_type":            "file",
+				"base_sha":                 mrInfo["diff_refs"].(map[string]interface{})["base_sha"],
+				"head_sha":                 mrInfo["diff_refs"].(map[string]interface{})["head_sha"],
+				"start_sha":                mrInfo["diff_refs"].(map[string]interface{})["start_sha"],
+				"new_path":                 validationError.NewPath, 
+				"old_path":                 validationError.OldPath, 
+				"old_line":                 nil,
+				"new_line":                 nil,
+				"line_range":               map[string]interface{}{},
+				"ignore_whitespace_change": false,
+			},
+		}
+
+		// Marshal the payload into JSON
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("Error marshalling JSON payload: %v", err)
+		}
+
+		// Create a new HTTP request with the JSON payload
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			return fmt.Errorf("Error creating HTTP request: %v", err)
+		}
+
+		// Set headers for authentication and content type
+		req.Header.Set("PRIVATE-TOKEN", gitLabToken)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Perform the HTTP request
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("Error making HTTP request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Check the HTTP response status
+		if resp.StatusCode != http.StatusCreated {
+			return fmt.Errorf("Error posting discussion to merge request. Status code: %d", resp.StatusCode)
+		}
+	}
 
 	return nil
 }
-
 
 func isMigrationFile(filePath string) bool {
 	re := regexp.MustCompile(`^V\d+__`)
