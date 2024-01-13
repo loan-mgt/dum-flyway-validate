@@ -55,7 +55,7 @@ func main() {
 
 	if debugMode {
 		fmt.Println("GitLab URL: ", gitLabURL)
-		fmt.Println("GitLab Token: ", gitLabToken == "")
+		fmt.Println("GitLab Token: ", !(gitLabToken == "") )
 		fmt.Println("CI Project ID: ", ciProjectID)
 		fmt.Println("CI Merge Request IID: ", ciMergeRequestIID)
 	}
@@ -155,10 +155,10 @@ func main() {
 func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID string, validationErrors []string) error {
 	// Prepare the curl command to post a note to the merge request with the validation result
 	body := fmt.Sprintf("Validation Errors:\n%s", strings.Join(validationErrors, "\n"))
-	curlURL := fmt.Sprintf(`"%s/api/v4/projects/%s/merge_requests/%s/notes" `, gitLabURL, ciProjectID, ciMergeRequestIID)
+	url := fmt.Sprintf(`"%s/api/v4/projects/%s/merge_requests/%s/notes"`, gitLabURL, ciProjectID, ciMergeRequestIID)
 
-	cmd := exec.Command("curl", "--location", "--request", "POST", curlURL, "--header", "PRIVATE-TOKEN: "+gitLabToken,
-		"--header", "Content-Type: application/json", "--data-raw", fmt.Sprintf(`{ "body": "%s" }`, body))
+	cmd := exec.Command("curl", "--location", "--request", "POST", url, "--header", fmt.Sprintf(`"PRIVATE-TOKEN: %s"`, gitLabToken) ,
+		"--header", "Content-Type: application/json", "--data-raw", fmt.Sprintf(`"{ \"body\": \"%s\" }"`, body))
 	output, err := cmd.CombinedOutput()
 
 	if debugMode {
