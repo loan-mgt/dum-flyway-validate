@@ -64,7 +64,7 @@ validate:
   image: alpine:latest
   script:
     - apk --update add curl git
-    - curl -LO https://github.com/Qypol342/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
+    - curl -LO https://github.com/loan-mgt/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
     - chmod +x dum-flyway-validate
     - git fetch origin
     - ./dum-flyway-validate --migration-dir $MIGRATION_DIR --branch $BRANCH_TO_COMPARE --integration
