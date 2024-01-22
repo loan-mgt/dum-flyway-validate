@@ -1,21 +1,18 @@
-# Use a lightweight Alpine image
-FROM alpine:latest
+# Use a lightweight Alpine image with Go installed
+FROM golang:alpine
 
 # Set the working directory
 WORKDIR /app
 
 # Install required tools
-RUN apk --update add curl git
+RUN apk --update add curl git \
+    && rm -rf /var/cache/apk/*
 
-# Build argument for dum-flyway-validate version (mandatory)
-ARG DUM_FLYWAY_VALIDATE_VERSION
-# Validate that the build argument is provided
-RUN test -n "$DUM_FLYWAY_VALIDATE_VERSION" || (echo "Build argument DUM_FLYWAY_VALIDATE_VERSION is required" && exit 1)
+# Copy the source code into the image
+COPY main.go .
 
-# Download dum-flyway-validate
-RUN curl -LO https://github.com/Qypol342/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
-RUN chmod +x dum-flyway-validate
+# Build the binary
+RUN go build -o dum-flyway-validate main.go && chmod +x dum-flyway-validate
 
 # Add /app to the PATH
 ENV PATH="/app:${PATH}"
-
