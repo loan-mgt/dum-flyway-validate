@@ -16,3 +16,6 @@ RUN test -n "$DUM_FLYWAY_VALIDATE_VERSION" || (echo "Build argument DUM_FLYWAY_V
 RUN curl -LO https://github.com/Qypol342/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
 RUN chmod +x dum-flyway-validate
 
+# Add /app to the PATH
+ENV PATH="/app:${PATH}"
+
