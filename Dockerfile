@@ -23,6 +23,9 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /app/dum-flyway-validate .
 
+# Add /app to the PATH
+ENV PATH="/app:${PATH}"
+
 # Add a non-root user for better security
 RUN adduser -D -g '' appuser
 USER appuser

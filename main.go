@@ -207,6 +207,9 @@ func RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeReques
 	var mrInfo map[string]interface{}
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&mrInfo); err != nil {
+		if debugMode {
+			fmt.Println("Response body:", resp.Body)
+		}
 		return nil, fmt.Errorf("Error decoding Merge Request info: %v", err)
 	}
 
