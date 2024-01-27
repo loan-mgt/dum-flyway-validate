@@ -2,37 +2,36 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-	"bytes"
-	"encoding/json"
-	"net/http"
 )
 
-
 var (
-	debugMode      bool
-	migrationDir   string
-	compareBranch  string
-	integration    bool
+	debugMode     bool
+	migrationDir  string
+	compareBranch string
+	integration   bool
 )
 
 const (
-	gitLabURLEnv          = "GITLAB_URL"
-	gitLabTokenEnv        = "GITLAB_TOKEN"
-	ciProjectIDEnv        = "CI_PROJECT_ID"
-	ciMergeRequestIIDEnv  = "CI_MERGE_REQUEST_IID"
+	gitLabURLEnv         = "GITLAB_URL"
+	gitLabTokenEnv       = "GITLAB_TOKEN"
+	ciProjectIDEnv       = "CI_PROJECT_ID"
+	ciMergeRequestIIDEnv = "CI_MERGE_REQUEST_IID"
 )
 
 type ValidationError struct {
 	Message   string
-	MessageMD   string
+	MessageMD string
 	OldPath   string
 	NewPath   string
 }
@@ -60,7 +59,7 @@ func main() {
 	ciProjectID := os.Getenv(ciProjectIDEnv)
 	ciMergeRequestIID := os.Getenv(ciMergeRequestIIDEnv)
 
-	if integration && ( gitLabURL == "" || gitLabToken == "" || ciProjectID == "" || ciMergeRequestIID == "" ){
+	if integration && (gitLabURL == "" || gitLabToken == "" || ciProjectID == "" || ciMergeRequestIID == "") {
 		fmt.Println("Warning: GitLab-related environment variables not set.")
 	}
 
@@ -130,43 +129,42 @@ func main() {
 			if isMatch(status, `^M`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, ValidationError{
-						Message: fmt.Sprintf("Error: Cannot modify migration file after it was applied"),
+						Message:   fmt.Sprintf("Error: Cannot modify migration file after it was applied"),
 						MessageMD: fmt.Sprintf(":warning: Error: Cannot **modify** migration file after it was applied"),
-						OldPath: oldFilePath,
-						NewPath: newFilePath,
+						OldPath:   oldFilePath,
+						NewPath:   newFilePath,
 					})
 				}
 			} else if isMatch(status, `^A`) {
 				if isMigrationFile(relativeFilePath) && !isAlphabeticallyLast(relativeFilePath, migrationDir) {
 					validationErrors = append(validationErrors, ValidationError{
-						Message: fmt.Sprintf("Error: Added migration file not alphabetically last"),
+						Message:   fmt.Sprintf("Error: Added migration file not alphabetically last"),
 						MessageMD: fmt.Sprintf(":warning: Error: Added migration file **not** alphabetically **last**"),
-						OldPath: oldFilePath,
-						NewPath: newFilePath,
+						OldPath:   oldFilePath,
+						NewPath:   newFilePath,
 					})
 				}
 			} else if isMatch(status, `^D`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, ValidationError{
-						Message: fmt.Sprintf("Error: Cannot remove migration file after it was applied"),
+						Message:   fmt.Sprintf("Error: Cannot remove migration file after it was applied"),
 						MessageMD: fmt.Sprintf(":warning: Error: Cannot **remove** migration file after it was applied"),
-						OldPath: oldFilePath,
-						NewPath: newFilePath,
+						OldPath:   oldFilePath,
+						NewPath:   newFilePath,
 					})
 				}
 			} else if isMatch(status, `^R`) {
 				if isMigrationFile(relativeFilePath) {
 					validationErrors = append(validationErrors, ValidationError{
-						Message: fmt.Sprintf("Error: Cannot rename migration file after it was applied"),
+						Message:   fmt.Sprintf("Error: Cannot rename migration file after it was applied"),
 						MessageMD: fmt.Sprintf(":warning: Error: Cannot **rename** migration file after it was applied"),
-						OldPath: oldFilePath,
-						NewPath: newFilePath,
+						OldPath:   oldFilePath,
+						NewPath:   newFilePath,
 					})
 				}
 			}
 		}
 	}
-
 
 	if len(validationErrors) > 0 {
 		fmt.Println("Validation errors:")
@@ -215,8 +213,6 @@ func RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeReques
 	return mrInfo, nil
 }
 
-
-
 func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID string, validationErrors []ValidationError) error {
 	mrInfo, err := RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID)
 	if err != nil {
@@ -235,8 +231,8 @@ func integrateWithGitLab(gitLabURL, gitLabToken, ciProjectID, ciMergeRequestIID 
 				"base_sha":                 mrInfo["diff_refs"].(map[string]interface{})["base_sha"],
 				"head_sha":                 mrInfo["diff_refs"].(map[string]interface{})["head_sha"],
 				"start_sha":                mrInfo["diff_refs"].(map[string]interface{})["start_sha"],
-				"new_path":                 validationError.NewPath, 
-				"old_path":                 validationError.OldPath, 
+				"new_path":                 validationError.NewPath,
+				"old_path":                 validationError.OldPath,
 				"old_line":                 nil,
 				"new_line":                 nil,
 				"line_range":               map[string]interface{}{},
