@@ -187,6 +187,9 @@ func RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeReques
 	url := fmt.Sprintf("%s/v4/projects/%s/merge_requests/%s", gitLabURL, ciProjectID, ciMergeRequestIID)
 
 	req, err := http.NewRequest("GET", url, nil)
+	if debugMode {
+		fmt.Println("Request URL:", url)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("Error creating HTTP request: %v", err)
 	}
@@ -195,6 +198,9 @@ func RetrieveMergeRequestInfo(gitLabURL, gitLabToken, ciProjectID, ciMergeReques
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+	if debugMode {
+		fmt.Println("Response status code:", resp.StatusCode)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("Error making HTTP request: %v", err)
 	}
