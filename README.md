@@ -55,19 +55,28 @@ stages:
   - validate
 
 variables:
-  DUM_FLYWAY_VALIDATE_VERSION: "v0.2.5"
-  MIGRATION_DIR: "path/to/migrations"
-  BRANCH_TO_COMPARE: "origin/your-branch"
+  MIGRATION_DIR: "<path/to/migration/directory>"
+  BRANCH_TO_COMPARE: "origin/main"
+
+  # for MR integration
+  GITLAB_URL: "https://<your-gitlab-url>/api"
+  GITLAB_TOKEN: $<access-token>
+
 
 validate:
   stage: validate
-  image: alpine:latest
+  image:
+    name: ghcr.io/loan-mgt/dum-flyway-validate:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
   script:
-    - apk --update add curl git
-    - curl -LO https://github.com/loan-mgt/dum-flyway-validate/releases/download/$DUM_FLYWAY_VALIDATE_VERSION/dum-flyway-validate
-    - chmod +x dum-flyway-validate
+    - git config --global --add safe.directory $(pwd)
     - git fetch origin
-    - ./dum-flyway-validate --migration-dir $MIGRATION_DIR --branch $BRANCH_TO_COMPARE --integration
+    - dum-flyway-validate --migration-dir $MIGRATION_DIR --branch $BRANCH_TO_COMPARE..HEAD --integration
 ```
 
 ## Contributing
